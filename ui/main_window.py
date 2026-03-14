@@ -222,10 +222,34 @@ class MainWindow(QMainWindow):
         threading.Thread(target=ai_thread, daemon=True).start()
 
     def get_ai_move(self):
-        """简单的随机AI（后续可以替换为MCTS）"""
+        """MCTS AI走棋"""
+        try:
+            import torch
+            from ai.network import ChineseChessNet
+            from ai.mcts import MCTS
+
+            net = ChineseChessNet(num_channels=64, num_res_blocks=4)
+            # 尝试加载训练好的模型
+            try:
+                net.load_state_dict(torch.load('data/models/model_latest.pth', map_location='cpu')['network'])
+            except:
+                pass  # 使用随机初始化的网络
+
+            mcts = MCTS(net, num_simulations=50)
+            policy, _ = mcts.search(self.game_controller.board)
+
+            # 选择概率最高的走法
+            best_idx = policy.argmax()
+            from backend.move import MOVE_INDEX_TO_ACTION
+            if best_idx in MOVE_INDEX_TO_ACTION:
+                fr, fc, tr, tc = MOVE_INDEX_TO_ACTION[best_idx]
+                return (fr, fc, tr, tc)
+        except Exception as e:
+            print(f"AI error: {e}")
+
+        # 回退到随机走法
         from backend.move import MoveGenerator
         import random
-
         moves = MoveGenerator.get_legal_moves(self.game_controller.board)
         if moves:
             m = random.choice(moves)
