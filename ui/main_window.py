@@ -17,6 +17,8 @@ class MainWindow(QMainWindow):
         self.chess_board = None
         self.ai_engine = None
         self.ai_thinking = False
+        from game.sound_manager import SoundManager
+        self.sound_manager = SoundManager()
         self.init_ui()
 
     def init_ui(self):
@@ -183,7 +185,17 @@ class MainWindow(QMainWindow):
         selected = self.chess_board.selected_piece
         if selected:
             from_row, from_col = selected
+            # 检查是否吃子
+            dest_piece = self.game_controller.board.get_piece(row, col)
+            is_capture = dest_piece is not None
+
             if self.game_controller.make_move(from_row, from_col, row, col):
+                # 播放音效
+                if is_capture:
+                    self.sound_manager.play_capture()
+                else:
+                    self.sound_manager.play_move()
+
                 self.chess_board.set_last_move(((from_row, from_col), (row, col)))
                 self.chess_board.clear_selection()
                 self.chess_board.update()
@@ -223,10 +235,22 @@ class MainWindow(QMainWindow):
                 move = self.get_ai_move()
                 if move:
                     from backend.move import Move
-                    m = Move(move[0], move[1], move[2], move[3])
+                    fr, fc, tr, tc = move[0], move[1], move[2], move[3]
+                    # 检查是否吃子
+                    dest_piece = self.game_controller.board.get_piece(tr, tc)
+                    is_capture = dest_piece is not None
+
+                    m = Move(fr, fc, tr, tc)
                     self.game_controller.board.make_move(m)
                     self.game_controller.move_history.append(m)
-                    self.chess_board.set_last_move(((move[0], move[1]), (move[2], move[3])))
+
+                    # 播放音效
+                    if is_capture:
+                        self.sound_manager.play_capture()
+                    else:
+                        self.sound_manager.play_move()
+
+                    self.chess_board.set_last_move(((fr, fc), (tr, tc)))
                     self.chess_board.update()
                     self.update_move_count()
 
