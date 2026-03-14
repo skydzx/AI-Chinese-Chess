@@ -101,6 +101,11 @@ class MainWindow(QMainWindow):
         about_action = QAction('关于', self)
         help_menu.addAction(about_action)
 
+        settings_menu = menubar.addMenu('设置(&S)')
+        settings_action = QAction('设置...', self)
+        settings_action.triggered.connect(self.on_settings)
+        settings_menu.addAction(settings_action)
+
     def create_tool_bar(self):
         toolbar = QToolBar()
         toolbar.setMovable(False)
@@ -287,6 +292,11 @@ class MainWindow(QMainWindow):
         if self.game_controller:
             result = -self.game_controller.get_current_player()
             self.show_game_over(result)
+
+    def on_settings(self):
+        from ui.settings_dialog import SettingsDialog
+        dialog = SettingsDialog(self)
+        dialog.exec_()
 
     def on_save_game(self):
         if not self.game_controller:
