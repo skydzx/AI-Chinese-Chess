@@ -57,7 +57,12 @@ class MainWindow(QMainWindow):
 
         save_action = QAction('保存(&S)', self)
         save_action.setShortcut(QKeySequence.Save)
+        save_action.triggered.connect(self.on_save_game)
         file_menu.addAction(save_action)
+
+        load_action = QAction('打开棋谱(&L)...', self)
+        load_action.triggered.connect(self.on_load_game)
+        file_menu.addAction(load_action)
 
         file_menu.addSeparator()
         exit_action = QAction('退出(&X)', self)
@@ -272,6 +277,40 @@ class MainWindow(QMainWindow):
         if self.game_controller:
             result = -self.game_controller.get_current_player()
             self.show_game_over(result)
+
+    def on_save_game(self):
+        if not self.game_controller:
+            return
+        from PyQt5.QtWidgets import QFileDialog
+        filename, _ = QFileDialog.getSaveFileName(self, "保存棋谱", "", "JSON Files (*.json)")
+        if filename:
+            from game.game_record import GameRecord
+            record = GameRecord()
+            for m in self.game_controller.move_history:
+                record.add_move(m.from_row, m.from_col, m.to_row, m.to_col)
+            record.save(filename)
+            self.update_status('棋谱已保存')
+
+    def on_load_game(self):
+        from PyQt5.QtWidgets import QFileDialog
+        filename, _ = QFileDialog.getOpenFileName(self, "打开棋谱", "", "JSON Files (*.json)")
+        if filename:
+            from game.game_record import GameRecord
+            record = GameRecord()
+            record.load(filename)
+            # 重新开始游戏并应用走法
+            from game.game_controller import GameController, GameMode
+            self.game_controller = GameController()
+            self.game_controller.start_game(GameMode.PVP)
+            from backend.move import Move
+            for fr, fc, tr, tc in record.moves:
+                m = Move(fr, fc, tr, tc)
+                self.game_controller.board.make_move(m)
+                self.game_controller.move_history.append(m)
+            if self.chess_board:
+                self.chess_board.set_board(self.game_controller.board)
+                self.chess_board.update()
+            self.update_status('棋谱已加载')
 
     def update_status(self, text):
         self.status_label.setText(text)
