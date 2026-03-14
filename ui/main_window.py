@@ -31,6 +31,15 @@ class MainWindow(QMainWindow):
         self.main_layout = QHBoxLayout()
         self.central_widget.setLayout(self.main_layout)
 
+        # 棋盘区域
+        self.board_container = QVBoxLayout()
+        self.main_layout.addLayout(self.board_container, 3)
+
+        # 分析面板
+        from ui.analysis_panel import AnalysisPanel
+        self.analysis_panel = AnalysisPanel()
+        self.main_layout.addWidget(self.analysis_panel, 1)
+
         self.create_menu_bar()
         self.create_tool_bar()
         self.create_status_bar()
@@ -144,6 +153,7 @@ class MainWindow(QMainWindow):
 
         self.chess_board.set_board(self.game_controller.board)
         self.chess_board.update()
+        self.analysis_panel.set_board(self.game_controller.board)
 
         mode_name = ['人人对战', '人机对战(执红)', '人机对战(执黑)'][mode]
         self.update_status(mode_name)
