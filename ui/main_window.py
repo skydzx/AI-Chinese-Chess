@@ -123,6 +123,12 @@ class MainWindow(QMainWindow):
         undo_action.triggered.connect(self.on_undo)
         toolbar.addAction(undo_action)
 
+        toolbar.addSeparator()
+
+        hint_action = QAction('AI提示', self)
+        hint_action.triggered.connect(self.on_ai_hint)
+        toolbar.addAction(hint_action)
+
     def create_status_bar(self):
         self.status_label = QLabel('就绪')
         self.move_label = QLabel('')
@@ -311,6 +317,46 @@ class MainWindow(QMainWindow):
                 self.game_controller.undo_move()
             self.chess_board.update()
             self.update_move_count()
+
+    def on_ai_hint(self):
+        """AI提示 - 显示当前局面的最佳走法"""
+        if not self.game_controller or self.ai_thinking:
+            return
+        if self.game_controller.is_game_over():
+            return
+
+        self.update_status('AI分析中...')
+
+        def hint_thread():
+            try:
+                move = self.get_ai_move()
+                if move:
+                    # 格式化走法
+                    from backend.move import MOVE_NAMES
+                    fr, fc, tr, tc = move
+                    move_name = self._format_move(fr, fc, tr, tc)
+                    QMessageBox.information(
+                        self, 'AI提示',
+                        f'推荐走法: {move_name}\n'
+                        f'从({fr+1}, {fc+1})到({tr+1}, {tc+1})'
+                    )
+            except Exception as e:
+                print(f"AI hint error: {e}")
+            finally:
+                self.update_status('就绪')
+
+        threading.Thread(target=hint_thread, daemon=True).start()
+
+    def _format_move(self, fr, fc, tr, tc):
+        """格式化走法名称 - 使用中国象棋坐标"""
+        # 列: 一二三四五六七八九 (红方从右到左)
+        # 行: 0-9 (0=红方底线, 9=黑方底线)
+        col_names = '一二三四五六七八九'
+        # 行号用中文数字
+        row_map = {0: '一', 1: '二', 2: '三', 3: '四', 4: '五', 5: '六', 6: '七', 7: '八', 8: '九', 9: '十'}
+        from_pos = f"{col_names[fc]}{row_map[fr]}"
+        to_pos = f"{col_names[tc]}{row_map[tr]}"
+        return f"{from_pos} → {to_pos}"
 
     def on_resign(self):
         if self.game_controller:
