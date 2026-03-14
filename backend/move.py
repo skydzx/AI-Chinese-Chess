@@ -53,7 +53,7 @@ for r1 in range(10):
 NUM_ACTIONS = _index_counter  # 应该是 8091
 
 
-@dataclass
+@dataclass(frozen=True)
 class Move:
     """走法表示"""
     from_row: int
