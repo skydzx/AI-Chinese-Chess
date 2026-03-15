@@ -45,12 +45,12 @@ class Trainer:
             games.extend(game_data)
         return games
 
-    def play_one_game(self, temperature=1.0, max_moves=200):
+    def play_one_game(self, temperature=1.0, max_moves=100):
         """下一局自对弈"""
         from backend.move import LEGAL_MOVE_INDICES
 
         board = Board()
-        mcts = MCTS(self.net, num_simulations=100)
+        mcts = MCTS(self.net, num_simulations=10)
 
         game_data = []
         history = []
@@ -146,20 +146,26 @@ class Trainer:
 
     def train(self, num_epochs=50, games_per_epoch=100):
         print("开始训练...")
+        sys.stdout.flush()
 
         for epoch in range(num_epochs):
             print(f"\n=== Epoch {epoch+1}/{num_epochs} ===")
+            sys.stdout.flush()
 
             # 自对弈
             print("自对弈中...")
+            sys.stdout.flush()
             games = self.selfplay(games_per_epoch)
             self.replay_buffer.extend(games)
             print(f"收集了 {len(games)} 个局面")
+            sys.stdout.flush()
 
             # 训练
             print("训练中...")
+            sys.stdout.flush()
             loss = self.train_step(batch_size=256)
             print(f"Loss: {loss:.4f}")
+            sys.stdout.flush()
 
             self.scheduler.step()
 
@@ -167,9 +173,11 @@ class Trainer:
             if (epoch + 1) % 10 == 0:
                 self.save_model(f"model_epoch_{epoch+1}.pth")
                 print(f"已保存: model_epoch_{epoch+1}.pth")
+                sys.stdout.flush()
 
         self.save_model("model_latest.pth")
         print("训练完成!")
+        sys.stdout.flush()
 
     def save_model(self, filename):
         path = f"data/models/{filename}"
@@ -181,8 +189,8 @@ class Trainer:
 
 if __name__ == "__main__":
     trainer = Trainer()
-    # 运行训练 - 100个epoch，每个epoch 10局棋
+    # 运行训练 - 减少epoch数以加快迭代
     print("开始训练...")
-    print("参数: 100 epochs, 每epoch 10局自对弈, 每步训练batch_size=256")
+    print("参数: 50 epochs, 每epoch 5局自对弈, 每步训练batch_size=256")
     sys.stdout.flush()
-    trainer.train(num_epochs=100, games_per_epoch=10)
+    trainer.train(num_epochs=50, games_per_epoch=5)
