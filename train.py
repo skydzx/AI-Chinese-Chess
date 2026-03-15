@@ -181,9 +181,7 @@ class Trainer:
 
 if __name__ == "__main__":
     trainer = Trainer()
-    # 快速测试
-    print("测试自对弈...")
+    # 运行训练
+    print("开始训练...")
     sys.stdout.flush()
-    games = trainer.selfplay(2)
-    print(f"生成了 {len(games)} 个训练数据")
-    sys.stdout.flush()
+    trainer.train(num_epochs=100, games_per_epoch=10)
