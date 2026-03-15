@@ -181,7 +181,8 @@ class Trainer:
 
 if __name__ == "__main__":
     trainer = Trainer()
-    # 运行训练
+    # 运行训练 - 100个epoch，每个epoch 10局棋
     print("开始训练...")
+    print("参数: 100 epochs, 每epoch 10局自对弈, 每步训练batch_size=256")
     sys.stdout.flush()
     trainer.train(num_epochs=100, games_per_epoch=10)
