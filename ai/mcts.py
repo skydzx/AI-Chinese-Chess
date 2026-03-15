@@ -149,11 +149,13 @@ class MCTS:
 
     def _get_policy(self, root: MCTSNode) -> np.ndarray:
         """获取策略分布"""
-        visits = np.zeros(2098)
+        from backend.move import LEGAL_MOVE_INDICES
+        visits = np.zeros(8010)
         for move, child in root.children.items():
-            idx = move.to_index()
-            if 0 <= idx < 2098:
-                visits[idx] = child.visit_count
+            raw_idx = move.to_index()
+            policy_idx = LEGAL_MOVE_INDICES.get(raw_idx, -1)
+            if policy_idx >= 0:
+                visits[policy_idx] = child.visit_count
 
         # 归一化
         total = visits.sum()

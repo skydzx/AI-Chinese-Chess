@@ -3,6 +3,10 @@
 
 import os
 import sys
+
+# 解决OpenMP冲突
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
+
 import torch
 import numpy as np
 from collections import deque
@@ -41,37 +45,73 @@ class Trainer:
             games.extend(game_data)
         return games
 
-    def play_one_game(self, temperature=1.0):
+    def play_one_game(self, temperature=1.0, max_moves=200):
         """下一局自对弈"""
+        from backend.move import LEGAL_MOVE_INDICES
+
         board = Board()
         mcts = MCTS(self.net, num_simulations=100)
 
         game_data = []
         history = []
+        move_count = 0
 
-        while not board.is_game_over():
+        while not board.is_game_over() and move_count < max_moves:
+            move_count += 1
             # MCTS搜索
             policy, _ = mcts.search(board)
+
+            # 过滤非法走法和NaN
+            legal_moves = MoveGenerator.get_legal_moves(board)
+            valid_policy = np.zeros(8010)  # 神经网络输出维度
+
+            for move in legal_moves:
+                raw_idx = move.to_index()
+                policy_idx = LEGAL_MOVE_INDICES.get(raw_idx, -1)
+                if policy_idx >= 0 and policy_idx < len(policy) and not np.isnan(policy[policy_idx]) and policy[policy_idx] > 0:
+                    valid_policy[policy_idx] = policy[policy_idx]
+
+            # 归一化
+            if valid_policy.sum() > 0:
+                valid_policy /= valid_policy.sum()
+            else:
+                # 如果没有有效策略，使用均匀分布
+                for move in legal_moves:
+                    raw_idx = move.to_index()
+                    policy_idx = LEGAL_MOVE_INDICES.get(raw_idx, -1)
+                    if policy_idx >= 0:
+                        valid_policy[policy_idx] = 1.0 / len(legal_moves)
 
             # 记录状态
             encoder = BoardEncoder()
             state = encoder.encode(board, history[-3:] if history else None)
-            game_data.append((state, policy.copy()))
+            game_data.append((state, valid_policy.copy()))
 
             # 采样走法
             if temperature > 0.001:
-                p = policy ** (1/temperature)
-                p /= p.sum()
-                action = np.random.choice(len(p), p=p)
+                p = valid_policy ** (1/temperature)
+                if p.sum() > 0:
+                    p /= p.sum()
+                    policy_idx = np.random.choice(len(p), p=p)
+                else:
+                    # 随机选择
+                    policy_idx = random.choice([LEGAL_MOVE_INDICES.get(m.to_index(), 0) for m in legal_moves])
             else:
-                action = policy.argmax()
+                policy_idx = valid_policy.argmax()
 
-            move = Move.from_index(action)
+            # 将 policy 索引转回原始 move
+            from backend.move import MOVE_INDEX_TO_ACTION
+            fr, fc, tr, tc = MOVE_INDEX_TO_ACTION[policy_idx]
+            move = Move(fr, fc, tr, tc)
             board.make_move(move)
             history.append(copy.deepcopy(board))
 
         # 计算结果
-        result = board.get_result()
+        if board.is_game_over():
+            result = board.get_result()
+        else:
+            # 超时平局
+            result = 0
 
         # 回溯赋值
         for i, (state, policy) in enumerate(game_data):
@@ -143,5 +183,7 @@ if __name__ == "__main__":
     trainer = Trainer()
     # 快速测试
     print("测试自对弈...")
+    sys.stdout.flush()
     games = trainer.selfplay(2)
     print(f"生成了 {len(games)} 个训练数据")
+    sys.stdout.flush()

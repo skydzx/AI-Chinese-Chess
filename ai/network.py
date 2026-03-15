@@ -21,7 +21,7 @@ class ChineseChessNet(nn.Module):
         # 策略头
         self.policy_conv = nn.Conv2d(num_channels, 32, kernel_size=1)
         self.policy_bn = nn.BatchNorm2d(32)
-        self.policy_fc = nn.Linear(32 * 10 * 9, 2098)  # 2098种走法
+        self.policy_fc = nn.Linear(32 * 10 * 9, 8010)  # 8010种合法走法
 
         # 价值头
         self.value_conv = nn.Conv2d(num_channels, 1, kernel_size=1)
