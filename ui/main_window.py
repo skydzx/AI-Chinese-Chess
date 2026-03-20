@@ -168,12 +168,14 @@ class MainWindow(QMainWindow):
         self.chess_board.update()
         self.analysis_panel.set_board(self.game_controller.board)
 
-        mode_name = ['人人对战', '人机对战(执红)', '人机对战(执黑)'][mode]
+        # 将GameMode转换为整数索引
+        mode_idx = mode.value if hasattr(mode, 'value') else int(mode)
+        mode_name = ['人人对战', '人机对战(执红)', '人机对战(执黑)'][mode_idx]
         self.update_status(mode_name)
 
         # 如果是PVE模式且AI先手，让AI走第一步
-        if mode in [1, 2]:
-            if mode == 2:  # AI执红先手
+        if mode_idx in [1, 2]:
+            if mode_idx == 2:  # AI执红先手
                 QTimer.singleShot(500, self.request_ai_move)
 
     def on_square_clicked(self, row, col):
