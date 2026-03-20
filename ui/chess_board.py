@@ -81,12 +81,11 @@ class ChessBoard(QWidget):
     def draw_highlights(self, painter):
         if self.last_move:
             (from_r, from_c), (to_r, to_c) = self.last_move
+            highlight_color = QColor(255, 255, 0, 100)  # 黄色高亮
             for r, c in [(from_r, from_c), (to_r, to_c)]:
-                painter.fillRect(
-                    self.get_x(c) - self.CELL_SIZE // 2,
-                    self.get_y(r) - self.CELL_SIZE // 2,
-                    self.CELL_SIZE, self.CELL_SIZE
-                )
+                x = self.get_x(c) - self.CELL_SIZE // 2
+                y = self.get_y(r) - self.CELL_SIZE // 2
+                painter.fillRect(x, y, self.CELL_SIZE, self.CELL_SIZE, highlight_color)
         for r, c in self.legal_moves:
             x, y = self.get_x(c), self.get_y(r)
             painter.setBrush(QBrush(self.LEGAL_MOVE_COLOR))
@@ -105,14 +104,17 @@ class ChessBoard(QWidget):
         piece_type, color = piece
         piece_color = QColor(180, 30, 30) if color == 1 else QColor(30, 30, 30)
         text_color = QColor(255, 215, 0)
+        r = self.PIECE_RADIUS
+        # 绘制圆形棋子 - drawEllipse使用左上角坐标+宽高
         painter.setBrush(QBrush(piece_color))
         painter.setPen(QPen(QColor(255, 215, 0), 2))
-        painter.drawEllipse(x, y, self.PIECE_RADIUS * 2, self.PIECE_RADIUS * 2)
+        painter.drawEllipse(x - r, y - r, r * 2, r * 2)
+        # 绘制棋子文字 - 居中显示
         from backend.board import Piece
         char = Piece.to_char(piece_type, color)
         painter.setPen(text_color)
         painter.setFont(QFont("KaiTi", 16, QFont.Bold))
-        painter.drawText(x - 10, y + 7, char)
+        painter.drawText(x - r, y - r, r * 2, r * 2, Qt.AlignCenter, char)
 
     def get_x(self, col):
         return 20 + col * self.CELL_SIZE + self.CELL_SIZE // 2

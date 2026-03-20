@@ -37,9 +37,22 @@ class MainWindow(QMainWindow):
         self.board_container = QVBoxLayout()
         self.main_layout.addLayout(self.board_container, 3)
 
+        # 创建棋盘组件（初始就显示）
+        from ui.chess_board import ChessBoard
+        from game.game_controller import GameController, GameMode
+        self.chess_board = ChessBoard()
+        self.board_container.addWidget(self.chess_board)
+        self.chess_board.square_clicked.connect(self.on_square_clicked)
+
+        # 创建游戏控制器（初始就显示棋盘）
+        self.game_controller = GameController()
+        self.game_controller.start_game(GameMode.PVP)  # 默认人人模式
+        self.chess_board.set_board(self.game_controller.board)
+
         # 分析面板
         from ui.analysis_panel import AnalysisPanel
         self.analysis_panel = AnalysisPanel()
+        self.analysis_panel.set_board(self.game_controller.board)
         self.main_layout.addWidget(self.analysis_panel, 1)
 
         self.create_menu_bar()
@@ -145,31 +158,21 @@ class MainWindow(QMainWindow):
             self.update_status('新建游戏')
 
     def start_game(self, mode):
-        from game.game_controller import GameController, GameMode
         from backend.board import Piece
 
-        self.game_controller = GameController()
-
         # mode: 0=PVP, 1=PVE红, 2=PVE黑
-        if mode == 0:
+        mode_idx = mode.value if hasattr(mode, 'value') else int(mode)
+        if mode_idx == 0:
             self.game_controller.start_game(GameMode.PVP)
-        elif mode == 1:
+        elif mode_idx == 1:
             self.game_controller.start_game(GameMode.PVE, Piece.RED)
         else:
             self.game_controller.start_game(GameMode.PVE, Piece.BLACK)
-
-        from ui.chess_board import ChessBoard
-        if not self.chess_board:
-            self.chess_board = ChessBoard()
-            self.main_layout.addWidget(self.chess_board, 1)
-            self.chess_board.square_clicked.connect(self.on_square_clicked)
 
         self.chess_board.set_board(self.game_controller.board)
         self.chess_board.update()
         self.analysis_panel.set_board(self.game_controller.board)
 
-        # 将GameMode转换为整数索引
-        mode_idx = mode.value if hasattr(mode, 'value') else int(mode)
         mode_name = ['人人对战', '人机对战(执红)', '人机对战(执黑)'][mode_idx]
         self.update_status(mode_name)
 
