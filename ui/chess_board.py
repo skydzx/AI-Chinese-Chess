@@ -24,10 +24,16 @@ class ChessBoard(QWidget):
         self.selected_piece = None
         self.legal_moves = []
         self.last_move = None
+        self.flipped = False  # 翻转标志
         self.setMinimumSize(
             self.BOARD_COLS * self.CELL_SIZE + 40,
             self.BOARD_ROWS * self.CELL_SIZE + 40
         )
+
+    def flip_board(self):
+        """翻转棋盘"""
+        self.flipped = not self.flipped
+        self.update()
 
     def set_board(self, board):
         self.board = board
@@ -125,14 +131,33 @@ class ChessBoard(QWidget):
         return 20 + col * self.CELL_SIZE + self.CELL_SIZE // 2
 
     def get_y(self, row):
+        if self.flipped:
+            # 翻转: row 0 显示在底部
+            return 20 + (self.BOARD_ROWS - 1 - row) * self.CELL_SIZE + self.CELL_SIZE // 2
         return 20 + row * self.CELL_SIZE + self.CELL_SIZE // 2
 
+    def get_row_from_y(self, y):
+        """根据y坐标获取row"""
+        if self.flipped:
+            row = (y - 20 - self.CELL_SIZE // 2) // self.CELL_SIZE
+            row = self.BOARD_ROWS - 1 - row
+            return max(0, min(self.BOARD_ROWS - 1, row))
+        else:
+            row = (y - 20 - self.CELL_SIZE // 2) // self.CELL_SIZE
+            return max(0, min(self.BOARD_ROWS - 1, row))
+
+    def get_col_from_x(self, x):
+        """根据x坐标获取col"""
+        col = (x - 20 - self.CELL_SIZE // 2) // self.CELL_SIZE
+        return max(0, min(self.BOARD_COLS - 1, col))
+
     def get_square_at(self, x, y):
-        for row in range(self.BOARD_ROWS):
-            for col in range(self.BOARD_COLS):
-                sx, sy = self.get_x(col), self.get_y(row)
-                if abs(x - sx) < self.CELL_SIZE // 2 and abs(y - sy) < self.CELL_SIZE // 2:
-                    return row, col
+        # 使用精确的行列计算
+        row = self.get_row_from_y(y)
+        col = self.get_col_from_x(x)
+        # 验证是否在有效范围内
+        if 0 <= row < self.BOARD_ROWS and 0 <= col < self.BOARD_COLS:
+            return row, col
         return None
 
     def mousePressEvent(self, event):

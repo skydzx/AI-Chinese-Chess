@@ -142,6 +142,12 @@ class MainWindow(QMainWindow):
         hint_action.triggered.connect(self.on_ai_hint)
         toolbar.addAction(hint_action)
 
+        toolbar.addSeparator()
+
+        flip_action = QAction('翻转棋盘', self)
+        flip_action.triggered.connect(self.on_flip_board)
+        toolbar.addAction(flip_action)
+
     def create_status_bar(self):
         self.status_label = QLabel('就绪')
         self.move_label = QLabel('')
@@ -443,6 +449,12 @@ class MainWindow(QMainWindow):
         if self.game_controller:
             result = -self.game_controller.get_current_player()
             self.show_game_over(result)
+
+    def on_flip_board(self):
+        """翻转棋盘"""
+        if self.chess_board:
+            self.chess_board.flip_board()
+            self.update_status('棋盘已翻转')
 
     def on_settings(self):
         from ui.settings_dialog import SettingsDialog
