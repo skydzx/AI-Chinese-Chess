@@ -155,6 +155,7 @@ class MainWindow(QMainWindow):
             if self.chess_board:
                 self.chess_board.set_board(self.game_controller.board)
                 self.chess_board.update()
+            self.analysis_panel.clear()
             self.update_status('新建游戏')
 
     def start_game(self, mode):
@@ -208,6 +209,11 @@ class MainWindow(QMainWindow):
                 else:
                     self.sound_manager.play_move()
 
+                # 添加到走棋记录
+                move_text = self._format_move_cn(from_row, from_col, row, col)
+                is_red = self.game_controller.get_current_player() == -1  # 走完后换方，所以当前是对方
+                self.analysis_panel.add_move(move_text, is_red)
+
                 self.chess_board.set_last_move(((from_row, from_col), (row, col)))
                 self.chess_board.clear_selection()
                 self.chess_board.update()
@@ -223,6 +229,14 @@ class MainWindow(QMainWindow):
             piece = self.game_controller.board.get_piece(row, col)
             if piece and piece[1] == self.game_controller.get_current_player():
                 self.chess_board.set_selected_piece(row, col)
+
+    def _format_move_cn(self, fr, fc, tr, tc):
+        """格式化走法为中国象棋坐标"""
+        col_names = '一二三四五六七八九'
+        row_names = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
+        from_pos = f"{col_names[fc]}{row_names[fr]}"
+        to_pos = f"{col_names[tc]}{row_names[tr]}"
+        return f"{from_pos}→{to_pos}"
 
     def request_ai_move(self):
         """请求AI走棋"""
@@ -241,10 +255,11 @@ class MainWindow(QMainWindow):
 
         self.ai_thinking = True
         self.update_status('AI思考中...')
+        self.analysis_panel.set_ai_thinking('🤔 AI正在思考中...')
 
         def ai_thread():
             try:
-                move = self.get_ai_move()
+                move, prob, top_moves = self.get_ai_move_with_info()
                 if move:
                     from backend.move import Move
                     fr, fc, tr, tc = move[0], move[1], move[2], move[3]
@@ -262,6 +277,19 @@ class MainWindow(QMainWindow):
                     else:
                         self.sound_manager.play_move()
 
+                    # 添加AI走法到记录
+                    move_text = self._format_move_cn(fr, fc, tr, tc)
+                    is_red_ai = self.game_controller.mode.value == 2  # AI执红
+                    self.analysis_panel.add_move(f"AI:{move_text}", is_red_ai)
+
+                    # 显示AI思路
+                    ai_thinking = f"✅ AI选择: {move_text}\n"
+                    ai_thinking += f"📊 置信度: {prob:.1%}\n"
+                    ai_thinking += f"🔍 候选:\n"
+                    for i, (tm, tp) in enumerate(top_moves[:3]):
+                        ai_thinking += f"   {i+1}. {self._format_move_cn(*tm)} ({tp:.1%})\n"
+                    self.analysis_panel.set_ai_thinking(ai_thinking)
+
                     self.chess_board.set_last_move(((fr, fc), (tr, tc)))
                     self.chess_board.update()
                     self.update_move_count()
@@ -271,6 +299,7 @@ class MainWindow(QMainWindow):
                         QMessageBox.information(self, '游戏结束', '红方获胜！' if result == 1 else ('黑方获胜！' if result == -1 else '平局！'))
             except Exception as e:
                 print(f"AI error: {e}")
+                self.analysis_panel.set_ai_thinking(f"❌ AI出错: {e}")
             finally:
                 self.ai_thinking = False
                 self.update_status('轮到你走棋')
@@ -311,6 +340,52 @@ class MainWindow(QMainWindow):
             m = random.choice(moves)
             return (m.from_row, m.from_col, m.to_row, m.to_col)
         return None
+
+    def get_ai_move_with_info(self):
+        """MCTS AI走棋 - 返回更多信息"""
+        try:
+            import torch
+            from ai.network import ChineseChessNet
+            from ai.mcts import MCTS
+
+            net = ChineseChessNet(num_channels=64, num_res_blocks=4)
+            # 尝试加载训练好的模型
+            try:
+                net.load_state_dict(torch.load('data/models/model_latest.pth', map_location='cpu')['network'])
+            except:
+                pass  # 使用随机初始化的网络
+
+            mcts = MCTS(net, num_simulations=50)
+            policy, value = mcts.search(self.game_controller.board)
+
+            # 获取top候选走法
+            from backend.move import MoveGenerator, LEGAL_MOVE_INDICES, MOVE_INDEX_TO_ACTION
+            legal_moves = MoveGenerator.get_legal_moves(self.game_controller.board)
+            move_probs = []
+            for move in legal_moves:
+                raw_idx = move.to_index()
+                policy_idx = LEGAL_MOVE_INDICES.get(raw_idx, -1)
+                if policy_idx >= 0 and policy_idx < len(policy):
+                    move_probs.append(((move.from_row, move.from_col, move.to_row, move.to_col), policy[policy_idx]))
+
+            move_probs.sort(key=lambda x: -x[1])
+            top_moves = move_probs[:5]
+
+            # 选择概率最高的走法
+            if top_moves:
+                best_move, best_prob = top_moves[0]
+                return best_move, best_prob, top_moves
+        except Exception as e:
+            print(f"AI error: {e}")
+
+        # 回退到随机走法
+        from backend.move import MoveGenerator
+        import random
+        moves = MoveGenerator.get_legal_moves(self.game_controller.board)
+        if moves:
+            m = random.choice(moves)
+            return (m.from_row, m.from_col, m.to_row, m.to_col), 0.0, []
+        return (0, 0, 0, 0), 0.0, []
 
     def show_game_over(self, result):
         msg = '红方获胜！' if result == 1 else ('黑方获胜！' if result == -1 else '平局！')
