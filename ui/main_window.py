@@ -159,6 +159,7 @@ class MainWindow(QMainWindow):
 
     def start_game(self, mode):
         from backend.board import Piece
+        from game.game_controller import GameMode
 
         # mode: 0=PVP, 1=PVE红, 2=PVE黑
         mode_idx = mode.value if hasattr(mode, 'value') else int(mode)
