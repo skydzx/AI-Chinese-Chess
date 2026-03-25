@@ -4,12 +4,18 @@ import threading
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QMenuBar, QMenu, QAction,
                              QToolBar, QStatusBar, QMessageBox, QFileDialog, QLabel)
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QKeySequence
 
 
 class MainWindow(QMainWindow):
     """主窗口类"""
+
+    # AI更新信号
+    ai_move_signal = pyqtSignal(str, bool)  # move_text, is_red
+    ai_thinking_signal = pyqtSignal(str)    # thinking_text
+    ai_eval_signal = pyqtSignal(str)        # eval_text
+    on_game_over_signal = pyqtSignal(int)   # result
 
     def __init__(self):
         super().__init__()
@@ -20,6 +26,12 @@ class MainWindow(QMainWindow):
         from game.sound_manager import SoundManager
         self.sound_manager = SoundManager()
         self.init_ui()
+
+        # 连接AI信号
+        self.ai_move_signal.connect(self.on_ai_move_recorded)
+        self.ai_thinking_signal.connect(self.on_ai_thinking_updated)
+        self.ai_eval_signal.connect(self.on_ai_eval_updated)
+        self.on_game_over_signal.connect(self.show_game_over)
 
     def init_ui(self):
         """初始化界面"""
@@ -261,7 +273,7 @@ class MainWindow(QMainWindow):
 
         self.ai_thinking = True
         self.update_status('AI思考中...')
-        self.analysis_panel.set_ai_thinking('🤔 AI正在思考中...')
+        self.ai_thinking_signal.emit('🤔 AI正在思考中...')
 
         def ai_thread():
             try:
@@ -283,34 +295,48 @@ class MainWindow(QMainWindow):
                     else:
                         self.sound_manager.play_move()
 
-                    # 添加AI走法到记录
+                    # 添加AI走法到记录 (通过信号)
                     move_text = self._format_move_cn(fr, fc, tr, tc)
                     is_red_ai = self.game_controller.mode.value == 2  # AI执红
-                    self.analysis_panel.add_move(f"AI:{move_text}", is_red_ai)
+                    self.ai_move_signal.emit(f"AI:{move_text}", is_red_ai)
 
-                    # 显示AI思路
+                    # 显示AI思路 (通过信号)
                     ai_thinking = f"✅ AI选择: {move_text}\n"
                     ai_thinking += f"📊 置信度: {prob:.1%}\n"
                     ai_thinking += f"🔍 候选:\n"
                     for i, (tm, tp) in enumerate(top_moves[:3]):
                         ai_thinking += f"   {i+1}. {self._format_move_cn(*tm)} ({tp:.1%})\n"
-                    self.analysis_panel.set_ai_thinking(ai_thinking)
+                    self.ai_thinking_signal.emit(ai_thinking)
 
+                    # 更新棋盘 (通过信号)
                     self.chess_board.set_last_move(((fr, fc), (tr, tc)))
                     self.chess_board.update()
                     self.update_move_count()
 
                     if self.game_controller.is_game_over():
                         result = self.game_controller.get_result()
-                        QMessageBox.information(self, '游戏结束', '红方获胜！' if result == 1 else ('黑方获胜！' if result == -1 else '平局！'))
+                        # 通知游戏结束
+                        self.on_game_over_signal.emit(result)
             except Exception as e:
                 print(f"AI error: {e}")
-                self.analysis_panel.set_ai_thinking(f"❌ AI出错: {e}")
+                self.ai_thinking_signal.emit(f"❌ AI出错: {e}")
             finally:
                 self.ai_thinking = False
                 self.update_status('轮到你走棋')
 
         threading.Thread(target=ai_thread, daemon=True).start()
+
+    def on_ai_move_recorded(self, move_text, is_red):
+        """处理AI走法记录 (在主线程)"""
+        self.analysis_panel.add_move(move_text, is_red)
+
+    def on_ai_thinking_updated(self, text):
+        """处理AI思路更新 (在主线程)"""
+        self.analysis_panel.set_ai_thinking(text)
+
+    def on_ai_eval_updated(self, text):
+        """处理AI评估更新 (在主线程)"""
+        self.analysis_panel.update_eval(text)
 
     def get_ai_move(self):
         """MCTS AI走棋"""
