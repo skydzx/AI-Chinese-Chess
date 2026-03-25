@@ -73,21 +73,20 @@ class ChessBoard(QWidget):
         painter.drawLine(self.get_x(5), self.get_y(2), self.get_x(3), self.get_y(0))
 
     def draw_river_and_border(self, painter):
-        # 绘制楚河汉界文字 - 居中显示在河界区域
+        # 绘制楚河汉界文字 - 始终显示在河界中央
         painter.setFont(QFont("KaiTi", 20, QFont.Bold))
-        # 河界在红方区域(row 0-4)和黑方区域(row 5-9)之间
-        # 行4的中心是 y=290, 行5的中心是 y=350
-        # 河界文字应该在它们之间，往上一点约 y=260-280
-        river_y = self.get_y(3) + self.CELL_SIZE + 15  # 在第4行下方
+        # 河界始终在棋盘视觉中央 (行4和行5之间)
+        # 使用固定的Y坐标计算，不管flip状态
+        center_y = 20 + 4 * self.CELL_SIZE + 10  # 行4和5之间的固定位置
         # 楚河: 左侧区域 (列2附近)
         chuhe_x = self.get_x(2) + 20
         # 汉界: 右侧区域 (列6附近)
         hanjie_x = self.get_x(6) - 20
         # 绘制 - 使用矩形区域居中对齐
-        painter.drawText(int(chuhe_x - 30), int(river_y), 60, 30, Qt.AlignCenter, "楚")
-        painter.drawText(int(chuhe_x + 10), int(river_y), 60, 30, Qt.AlignCenter, "河")
-        painter.drawText(int(hanjie_x - 30), int(river_y), 60, 30, Qt.AlignCenter, "汉")
-        painter.drawText(int(hanjie_x + 10), int(river_y), 60, 30, Qt.AlignCenter, "界")
+        painter.drawText(int(chuhe_x - 30), int(center_y), 60, 30, Qt.AlignCenter, "楚")
+        painter.drawText(int(chuhe_x + 10), int(center_y), 60, 30, Qt.AlignCenter, "河")
+        painter.drawText(int(hanjie_x - 30), int(center_y), 60, 30, Qt.AlignCenter, "汉")
+        painter.drawText(int(hanjie_x + 10), int(center_y), 60, 30, Qt.AlignCenter, "界")
 
     def draw_highlights(self, painter):
         if self.last_move:
