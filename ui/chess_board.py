@@ -67,13 +67,19 @@ class ChessBoard(QWidget):
         painter.drawLine(self.get_x(5), self.get_y(2), self.get_x(3), self.get_y(0))
 
     def draw_river_and_border(self, painter):
-        # 绘制楚河汉界文字（不加额外线条，保持棋盘整洁）
-        painter.setFont(QFont("KaiTi", 18, QFont.Bold))
-        y = self.get_y(4) + self.CELL_SIZE  # 在第4行下方
-        painter.drawText(self.get_x(1), y + 20, "楚")
-        painter.drawText(self.get_x(2), y + 20, "河")
-        painter.drawText(self.get_x(6), y + 20, "汉")
-        painter.drawText(self.get_x(7), y + 20, "界")
+        # 绘制楚河汉界文字 - 居中显示在河界区域
+        painter.setFont(QFont("KaiTi", 20, QFont.Bold))
+        # 河界区域: 行4和行5之间的区域, 中心在y=4.5行
+        river_y = self.get_y(4) + self.CELL_SIZE // 2 + 7  # 居中位置
+        # 楚河: 居中在列1-2区域
+        chuhe_x = self.get_x(0) + self.CELL_SIZE * 2  # 列0和列1之间
+        # 汉界: 居中在列6-7区域
+        hanjie_x = self.get_x(7) + self.CELL_SIZE // 2  # 列7位置
+        # 绘制
+        painter.drawText(chuhe_x - 25, river_y, "楚")
+        painter.drawText(chuhe_x + 5, river_y, "河")
+        painter.drawText(hanjie_x - 15, river_y, "汉")
+        painter.drawText(hanjie_x + 15, river_y, "界")
 
     def draw_highlights(self, painter):
         if self.last_move:
