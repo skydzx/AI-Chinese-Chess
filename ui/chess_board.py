@@ -69,11 +69,13 @@ class ChessBoard(QWidget):
     def draw_river_and_border(self, painter):
         # 绘制楚河汉界文字 - 居中显示在河界区域
         painter.setFont(QFont("KaiTi", 20, QFont.Bold))
-        # 河界区域: 行4和行5之间的区域, 中心在y=4.5行
-        river_y = self.get_y(4) + self.CELL_SIZE // 2 + 7  # 居中位置
-        # 楚河: 居中在左侧 (列2-3之间，约x=170)
+        # 河界在红方区域(row 0-4)和黑方区域(row 5-9)之间
+        # 行4的中心是 y=290, 行5的中心是 y=350
+        # 河界文字应该在它们之间，往上一点约 y=260-280
+        river_y = self.get_y(3) + self.CELL_SIZE + 15  # 在第4行下方
+        # 楚河: 左侧区域 (列2附近)
         chuhe_x = self.get_x(2) + 20
-        # 汉界: 居中在右侧 (列5-6之间，约x=410)
+        # 汉界: 右侧区域 (列6附近)
         hanjie_x = self.get_x(6) - 20
         # 绘制 - 使用矩形区域居中对齐
         painter.drawText(int(chuhe_x - 30), int(river_y), 60, 30, Qt.AlignCenter, "楚")
