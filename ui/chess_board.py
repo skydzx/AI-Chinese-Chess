@@ -67,16 +67,13 @@ class ChessBoard(QWidget):
         painter.drawLine(self.get_x(5), self.get_y(2), self.get_x(3), self.get_y(0))
 
     def draw_river_and_border(self, painter):
-        painter.setPen(QPen(self.LINE_COLOR, 2))
-        y1 = self.get_y(4) + self.CELL_SIZE // 2
-        y2 = self.get_y(5) + self.CELL_SIZE // 2
-        painter.drawLine(self.get_x(0), y1, self.get_x(8), y1)
-        painter.drawLine(self.get_x(0), y2, self.get_x(8), y2)
+        # 绘制楚河汉界文字（不加额外线条，保持棋盘整洁）
         painter.setFont(QFont("KaiTi", 18, QFont.Bold))
-        painter.drawText(self.get_x(1), y1 + 5, "楚")
-        painter.drawText(self.get_x(2), y1 + 5, "河")
-        painter.drawText(self.get_x(6), y1 + 5, "汉")
-        painter.drawText(self.get_x(7), y1 + 5, "界")
+        y = self.get_y(4) + self.CELL_SIZE  # 在第4行下方
+        painter.drawText(self.get_x(1), y + 20, "楚")
+        painter.drawText(self.get_x(2), y + 20, "河")
+        painter.drawText(self.get_x(6), y + 20, "汉")
+        painter.drawText(self.get_x(7), y + 20, "界")
 
     def draw_highlights(self, painter):
         if self.last_move:

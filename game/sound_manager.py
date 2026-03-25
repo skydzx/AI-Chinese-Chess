@@ -6,12 +6,23 @@ import numpy as np
 class SoundManager:
     def __init__(self):
         self.enabled = False
+        self.initialized = False
+        self.move_sound = None
+        self.capture_sound = None
+        self.check_sound = None
+
+    def _lazy_init(self):
+        """延迟初始化 - 避免与Qt冲突"""
+        if self.initialized:
+            return
+        self.initialized = True
         try:
             pygame.mixer.init(frequency=22050, size=-16, channels=2)
             self.enabled = True
             self._generate_sounds()
         except Exception as e:
             print(f"Sound initialization failed: {e}")
+            self.enabled = False
 
     def _generate_sounds(self):
         """程序生成音效"""
