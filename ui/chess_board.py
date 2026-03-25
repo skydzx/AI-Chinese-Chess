@@ -71,15 +71,15 @@ class ChessBoard(QWidget):
         painter.setFont(QFont("KaiTi", 20, QFont.Bold))
         # 河界区域: 行4和行5之间的区域, 中心在y=4.5行
         river_y = self.get_y(4) + self.CELL_SIZE // 2 + 7  # 居中位置
-        # 楚河: 居中在列1-2区域
-        chuhe_x = self.get_x(0) + self.CELL_SIZE * 2  # 列0和列1之间
-        # 汉界: 居中在列6-7区域
-        hanjie_x = self.get_x(7) + self.CELL_SIZE // 2  # 列7位置
-        # 绘制
-        painter.drawText(chuhe_x - 25, river_y, "楚")
-        painter.drawText(chuhe_x + 5, river_y, "河")
-        painter.drawText(hanjie_x - 15, river_y, "汉")
-        painter.drawText(hanjie_x + 15, river_y, "界")
+        # 楚河: 居中在左侧 (列2-3之间，约x=170)
+        chuhe_x = self.get_x(2) + 20
+        # 汉界: 居中在右侧 (列5-6之间，约x=410)
+        hanjie_x = self.get_x(6) - 20
+        # 绘制 - 使用矩形区域居中对齐
+        painter.drawText(int(chuhe_x - 30), int(river_y), 60, 30, Qt.AlignCenter, "楚")
+        painter.drawText(int(chuhe_x + 10), int(river_y), 60, 30, Qt.AlignCenter, "河")
+        painter.drawText(int(hanjie_x - 30), int(river_y), 60, 30, Qt.AlignCenter, "汉")
+        painter.drawText(int(hanjie_x + 10), int(river_y), 60, 30, Qt.AlignCenter, "界")
 
     def draw_highlights(self, painter):
         if self.last_move:
